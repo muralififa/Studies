@@ -1,0 +1,60 @@
+import requests
+import json
+import base64
+import os
+import logging
+
+url = "https://misc/utilityfaxnmail/members/J/email-utility"
+headers = {"Content-Type": "application/json"}
+
+prod_ind_bat = "2025-10-28"
+
+# Let's assume these files are dynamically created or listed from a folder
+attachment_files = [
+    "report_2025_10_28.xlsx",
+    "DocumentDB_Logs.zip"
+]
+
+inline_resources = []
+
+for file_path in attachment_files:
+    file_name = os.path.basename(file_path)
+    file_ext = os.path.splitext(file_name)[1].replace(".", "")  # e.g., xlsx or zip
+    
+    with open(file_path, "rb") as f:
+        encoded_file = base64.b64encode(f.read()).decode("utf-8")
+    
+    inline_resources.append({
+        "data": {
+            "content": encoded_file,
+            "filetype": file_ext,
+            "encoding": "base64"
+        },
+        # dynamically set the ID and name
+        "inLineResourceID": file_name,  
+        "archiveResource": "none"
+    })
+
+body = {
+    "staticData": {
+        "fromEmail": "noreply@anthem.com",
+        "toEmail": ["murali@car.com"],
+        "ccEmail": ["raghu@eleva.com"],
+        "subject": f"DocumentDB {prod_ind_bat} Load SUCCESSFUL",
+        "body": {
+            "content": f"Today's DocumentDB PROD INDICATOR - {prod_ind_bat} load is completed.<br><br>Thanks",
+            "bodyContentType": "HTML",
+            "toMarkSecure": "true"
+        }
+    },
+    "dynamicData": {
+        "inLineResource": inline_resources  # dynamically filled list
+    }
+}
+
+response = requests.post(url, headers=headers, data=json.dumps(body), verify=False)
+
+if response.status_code == 200:
+    logging.info("Email sent successfully with dynamic attachments")
+else:
+    logging.info(f"Failed to send email: {response.status_code} - {response.text}")
