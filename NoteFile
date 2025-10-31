@@ -1,0 +1,49 @@
+import requests
+import json
+import base64
+import logging
+
+# Example variables
+prod_ind_bat = "2025-10-28"
+
+url = "https://misc/utilityfaxnmail/members/JKJKJDS8989389383/email-utility"
+headers = {"Content-Type": "application/json"}
+
+# Read and encode attachment file
+file_path = "report.xlsx"  # could be .zip, .txt, etc.
+with open(file_path, "rb") as f:
+    encoded_file = base64.b64encode(f.read()).decode("utf-8")
+
+body = {
+    "staticData": {
+        "fromEmail": "noreply@anthem.com",
+        "toEmail": ["murali@car.com"],
+        "ccEmail": ["raghu@ele.com"],
+        "subject": f"DocumentDB {prod_ind_bat} Load SUCCESSFUL",
+        "body": {
+            "content": f"Today's DocumentDB PROD INDICATOR - {prod_ind_bat} is completed.<br><br>Thanks",
+            "bodyContentType": "HTML",
+            "toMarkSecure": "true"
+        }
+    },
+    "dynamicData": {
+        "inLineResource": [
+            {
+                "data": {
+                    "content": encoded_file,
+                    "filetype": "xlsx",        # or "zip", "txt", "csv", etc.
+                    "encoding": "base64"       # must be base64 for binary data
+                },
+                "inLineResourceID": "DocumentDB_Report.xlsx",  # attachment name
+                "archiveResource": "none"
+            }
+        ]
+    }
+}
+
+response = requests.post(url, headers=headers, data=json.dumps(body), verify=False)
+
+if response.status_code == 200:
+    logging.info("Email sent successfully with attachment")
+else:
+    logging.info(f"Failed to send email: {response.status_code} - {response.text}")
